@@ -63,7 +63,9 @@ searchButton.addEventListener("click", function (event) {
   // Function to save cities to localStorage
   function addCititesToLocalStorage(cityToStore) {
     const storedCities = JSON.parse(localStorage.getItem("cities")) || [];
-    storedCities.push(cityToStore);
+    if (!storedCities.some(city => city.name === cityToStore.name)) {
+      storedCities.push(cityToStore);
+    }
     localStorage.setItem("cities", JSON.stringify(storedCities));
   }
 });
