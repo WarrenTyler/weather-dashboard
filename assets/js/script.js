@@ -2,9 +2,8 @@
 const apiKey = "0c844d8b5a9a8c945f153e1fd8606479";
 
 // DOM elements
-const searchButton = document.querySelector("#search-button");
-const searchInput = document.querySelector("#search-input");
-// const cityList = document.querySelector(".city-list");
+const searchButtonEl = document.querySelector("#search-button");
+const searchInputEl = document.querySelector("#search-input");
 const searchHistoryEl = document.querySelector("#search-history");
 
 populateSearchHistory();
@@ -17,17 +16,30 @@ function populateSearchHistory() {
   });
 }
 
-function addToSearchHistory(cityName) {
-  // Create elements for every city searched
-  const cityButtonEl = document.createElement("button");
-  cityButtonEl.textContent = cityName;
-  searchHistoryEl.prepend(cityButtonEl);
+function newButtonEl(cityName) {
+  return Object.assign(document.createElement("button"), {
+    className: "btn btn-secondary",
+    textContent: cityName,
+    type: "button",
+    name: cityName
+  });
 }
+
+function addToSearchHistory(cityName) {
+  // get node list of existing buttons in search history
+  const cityButtonEls = searchHistoryEl.querySelectorAll("button");
+
+  // add button to search history, if not already present
+  if(![...cityButtonEls].some(button => button.name === cityName)){
+    searchHistoryEl.prepend(newButtonEl(cityName));
+  }
+}
+
 // addEventListener on search button
-searchButton.addEventListener("click", function (event) {
+searchButtonEl.addEventListener("click", function (event) {
   event.preventDefault();
   // store searchInput into variable
-  const city = searchInput.value;
+  const city = searchInputEl.value;
   console.log("Search for City: " + city);
 
   // const city = "London";
@@ -39,7 +51,7 @@ searchButton.addEventListener("click", function (event) {
   fetch(queryURL1)
     .then((response) => response.json())
     .then((citiesFound) => {
-      // console.log(citiesFound)
+      console.log(citiesFound);
       // console.log(citiesFound)
       const firstCity = citiesFound[0];
       console.log("firstCity: " + firstCity.name);
@@ -50,20 +62,20 @@ searchButton.addEventListener("click", function (event) {
       const queryURL2 = `https://api.openweathermap.org/data/2.5/forecast?lat=${firstCity.lat}&lon=${firstCity.lon}&appid=${apiKey}`;
 
       addCititesToLocalStorage(firstCity);
-
+      
       return fetch(queryURL2);
     })
-
     .then((response) => response.json())
     .then((cityData) => {
       // the below is the data from return fetch (queryURL2)
       // console.log(cityData);
+      addToSearchHistory(cityData.city.name);
     });
 
   // Function to save cities to localStorage
   function addCititesToLocalStorage(cityToStore) {
     const storedCities = JSON.parse(localStorage.getItem("cities")) || [];
-    if (!storedCities.some(city => city.name === cityToStore.name)) {
+    if (!storedCities.some((city) => city.name === cityToStore.name)) {
       storedCities.push(cityToStore);
     }
     localStorage.setItem("cities", JSON.stringify(storedCities));
