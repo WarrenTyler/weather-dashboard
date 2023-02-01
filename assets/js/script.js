@@ -9,10 +9,10 @@ const searchHistoryEl = document.querySelector("#search-history");
 populateSearchHistory();
 
 function populateSearchHistory() {
-  const storedCities = JSON.parse(localStorage.getItem("cities")) || [];
-  storedCities.forEach((city) => {
-    addToSearchHistory(city.name);
-    console.log(city.name);
+  const storedWeather = JSON.parse(localStorage.getItem("weatherForCities")) || [];
+  storedWeather.forEach((weather) => {
+    addToSearchHistory(weather.city.name);
+    // console.log(city.name);
   });
 }
 
@@ -21,7 +21,7 @@ function newButtonEl(cityName) {
     className: "btn btn-secondary",
     textContent: cityName,
     type: "button",
-    name: cityName
+    name: cityName,
   });
 }
 
@@ -30,7 +30,7 @@ function addToSearchHistory(cityName) {
   const cityButtonEls = searchHistoryEl.querySelectorAll("button");
 
   // add button to search history, if not already present
-  if(![...cityButtonEls].some(button => button.name === cityName)){
+  if (![...cityButtonEls].some((button) => button.name === cityName)) {
     searchHistoryEl.prepend(newButtonEl(cityName));
   }
 }
@@ -51,8 +51,9 @@ searchButtonEl.addEventListener("click", function (event) {
   fetch(queryURL1)
     .then((response) => response.json())
     .then((citiesFound) => {
-      console.log(citiesFound);
-      // console.log(citiesFound)
+      console.log("City found: " + !citiesFound.length);
+      
+      // if (!citiesFound.length) return;
       const firstCity = citiesFound[0];
       console.log("firstCity: " + firstCity.name);
       // console.log("lat: " + firstCity.lat);
@@ -61,23 +62,25 @@ searchButtonEl.addEventListener("click", function (event) {
       // 2nd URL data request chained onto 1st URL data request
       const queryURL2 = `https://api.openweathermap.org/data/2.5/forecast?lat=${firstCity.lat}&lon=${firstCity.lon}&appid=${apiKey}`;
 
-      addCititesToLocalStorage(firstCity);
-      
       return fetch(queryURL2);
     })
     .then((response) => response.json())
-    .then((cityData) => {
+    .then((cityWeather) => {
       // the below is the data from return fetch (queryURL2)
-      // console.log(cityData);
-      addToSearchHistory(cityData.city.name);
-    });
+      console.log(cityWeather);
+
+      addWeatherToLocalStorage(cityWeather);
+      addToSearchHistory(cityWeather.city.name);
+    })
+    .catch(err => console.log(err));
 
   // Function to save cities to localStorage
-  function addCititesToLocalStorage(cityToStore) {
-    const storedCities = JSON.parse(localStorage.getItem("cities")) || [];
-    if (!storedCities.some((city) => city.name === cityToStore.name)) {
-      storedCities.push(cityToStore);
+  function addWeatherToLocalStorage(cityWeather) {
+    
+    const storedWeather = JSON.parse(localStorage.getItem("weatherForCities")) || [];
+    if (!storedWeather.some((weather) => weather.city.name === cityWeather.city.name)) {
+      storedWeather.push(cityWeather);
     }
-    localStorage.setItem("cities", JSON.stringify(storedCities));
+    localStorage.setItem("weatherForCities", JSON.stringify(storedWeather));
   }
 });
