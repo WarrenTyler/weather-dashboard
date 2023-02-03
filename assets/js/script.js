@@ -1,21 +1,21 @@
-const apiKey = "0c844d8b5a9a8c945f153e1fd8606479";
-
-// DOM elements
+// global dom elements
 const searchButtonEl = document.querySelector("#search-button");
-const searchInputEl = document.querySelector("#search-input");
 const searchHistoryEl = document.querySelector("#search-history");
 
+// first populate the search history, then rely on event listeners for user interaction
 populateSearchHistory();
 
+// populate the search history by iterating through the local storage weather objects
 function populateSearchHistory() {
   const storedWeather =
     JSON.parse(localStorage.getItem("weatherForCities")) || [];
+
   storedWeather.forEach((weather) => {
     addToSearchHistory(weather.city.name);
-    // console.log(city.name);
   });
 }
 
+// creates and returns a new button element based on city name
 function newButtonEl(cityName) {
   return Object.assign(document.createElement("button"), {
     className: "btn btn-secondary",
@@ -25,20 +25,23 @@ function newButtonEl(cityName) {
   });
 }
 
+// adds button to search history, if not already present
 function addToSearchHistory(cityName) {
   // get node list of existing buttons in search history
   const cityButtonEls = searchHistoryEl.querySelectorAll("button");
 
-  // add button to search history, if not already present
+  // only add, if not already present
   if (![...cityButtonEls].some((button) => button.name === cityName)) {
     searchHistoryEl.prepend(newButtonEl(cityName));
   }
 }
 
-// Function to save cities to localStorage
+// add the weather object to local storage, if not already present
 function addWeatherToLocalStorage(cityWeather) {
   const storedWeather =
     JSON.parse(localStorage.getItem("weatherForCities")) || [];
+
+  // only store, if not already present 
   if (
     !storedWeather.some(
       (weather) => weather.city.name === cityWeather.city.name
@@ -46,13 +49,8 @@ function addWeatherToLocalStorage(cityWeather) {
   ) {
     storedWeather.push(cityWeather);
   }
+
   localStorage.setItem("weatherForCities", JSON.stringify(storedWeather));
-}
-
-function populateTodayPanel(weather) {
-  const todayPanelEl = document.querySelector("#today-panel");
-
-  todayPanelEl.innerHTML = createTodayPanelHTML(weather);
 }
 
 function getWeatherIconURL(weather, timeIndex) {
@@ -63,43 +61,28 @@ function convertKelvinToCelcius(kelvin) {
   return kelvin - 273.15;
 }
 
-// function createTodayPanelHTML(weather) {
-//   return `
-//     <h2 id="city-name" class="display-4">${weather.city.name}</h2>
-//     <div class="card">
-//       <h2 class="card-header h3">
-//       ${moment.unix(weather.list[0].dt).format("DD/MM/YYYY, HH:mm")}
-//       </h2>
-//       <div class="card-body">
-//         <img src="${getWeatherIconURL(weather)}" />
-//         <p>Temperature: ${convertKelvinToCelcius(
-//           weather.list[0].main.temp
-//         ).toFixed(2)}<sup>o</sup>C</p>
-//         <p>Wind: ${weather.list[0].wind.speed}</p>
-//         <p>Humidity: ${weather.list[0].main.humidity}</p>
-//       </div>
-//     </div>
-//   `;
-// }
-
 function populateForecasts(weather) {
   const mainContentEl = document.querySelector("#main-content-wrapper");
   const cityNameEl = document.querySelector("#city-name");
+  // these are the weather objects list indices for forecasts date and time
   const dtOffsets = [0, 8, 16, 24, 32, 39];
 
+  // display the main content by removing the bootstrap class
   mainContentEl.classList.remove("d-none");
 
+  // update the displayed city name based on the weather object
   cityNameEl.textContent = weather.city.name;
 
+  // generate each card based on the time index
   dtOffsets.forEach((timeIndex, i) => {
+    // use the array index to target where each card should be displayed
     const cardTargetEl = document.querySelector("#card-target-" + i);
-    const headingSize = i === 0 ? "h3" : "h6";
 
-    // cardTargetEl.innerHTML = createCardHTML(weather, timeIndex, headingSize);
     cardTargetEl.innerHTML = createCardHTML(weather, timeIndex);
   });
 }
 
+// returns the HTML based on the weather object and the desired time offset
 function createCardHTML(weather, timeIndex) {
   return `
     <div class="card">
@@ -122,42 +105,47 @@ function createCardHTML(weather, timeIndex) {
 
 searchButtonEl.addEventListener("click", function (event) {
   event.preventDefault();
-  // store searchInput into variable
+
+  const apiKey = "0c844d8b5a9a8c945f153e1fd8606479";
+  const searchInputEl = document.querySelector("#search-input");
+
   const city = searchInputEl.value;
   console.log("Search for City: " + city);
 
-  // const city = "London";
+  // only make search if user has entered some text
+  // (this won't prevent bad input of city names)
+  if (city) {
+    const queryURL1 = `https://api.openweathermap.org/geo/1.0/direct?q=${city}&limit=5&appid=${apiKey}`;
 
-  // URL 1 build
-  const queryURL1 = `https://api.openweathermap.org/geo/1.0/direct?q=${city}&limit=5&appid=${apiKey}`;
+    // first, search for the desired city using the correct endpoint
+    fetch(queryURL1)
+      .then((response) => response.json())
+      .then((citiesFound) => {
+        // console.log("City found: " + !citiesFound.length);
 
-  // We need this data first in order to make the 2nd request
-  fetch(queryURL1)
-    .then((response) => response.json())
-    .then((citiesFound) => {
-      console.log("City found: " + !citiesFound.length);
+        // if (!citiesFound.length) return;
+        const firstCity = citiesFound[0];
+        console.log("firstCity: " + firstCity.name);
 
-      // if (!citiesFound.length) return;
-      const firstCity = citiesFound[0];
-      console.log("firstCity: " + firstCity.name);
-      // console.log("lat: " + firstCity.lat);
-      // console.log("lon" + firstCity.lon);
+        const queryURL2 = `https://api.openweathermap.org/data/2.5/forecast?lat=${firstCity.lat}&lon=${firstCity.lon}&appid=${apiKey}`;
+        // now we can search for the weather data associated with the latitude and longitude of the city
+        // and use a different endpoint, by returning the fetch, we can pass that to the next 'then' by chaining
+        return fetch(queryURL2);
+      })
+      .then((response) => response.json())
+      .then((cityWeather) => {
+        // use this data to populate the display and local storage
+        console.log(cityWeather);
 
-      // 2nd URL data request chained onto 1st URL data request
-      const queryURL2 = `https://api.openweathermap.org/data/2.5/forecast?lat=${firstCity.lat}&lon=${firstCity.lon}&appid=${apiKey}`;
+        populateForecasts(cityWeather);
+        addWeatherToLocalStorage(cityWeather);
+        addToSearchHistory(cityWeather.city.name);
+      })
+      .catch((err) => console.log(err));
+  }
 
-      return fetch(queryURL2);
-    })
-    .then((response) => response.json())
-    .then((cityWeather) => {
-      // the below is the data from return fetch (queryURL2)
-      console.log(cityWeather);
-
-      populateForecasts(cityWeather);
-      addWeatherToLocalStorage(cityWeather);
-      addToSearchHistory(cityWeather.city.name);
-    })
-    .catch((err) => console.log(err));
+  // finally, clear the text of the last search
+  searchInputEl.value = "";
 });
 
 searchHistoryEl.addEventListener("click", function (event) {
