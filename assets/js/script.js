@@ -1,4 +1,3 @@
-// API Key
 const apiKey = "0c844d8b5a9a8c945f153e1fd8606479";
 
 // DOM elements
@@ -83,11 +82,15 @@ function convertKelvinToCelcius(kelvin) {
 //   `;
 // }
 
-function populateForecastPanel(weather) {
-  // const forecastPanelEl = document.querySelector("#five-day-forecast");
-  // let html = "";
-
+function populateForecasts(weather) {
+  const mainContentEl = document.querySelector("#main-content-wrapper");
+  const cityNameEl = document.querySelector("#city-name");
   const dtOffsets = [0, 8, 16, 24, 32, 39];
+
+  mainContentEl.classList.remove("d-none");
+
+  cityNameEl.textContent = weather.city.name;
+
   dtOffsets.forEach((timeIndex, i) => {
     const cardTargetEl = document.querySelector("#card-target-" + i);
     const headingSize = i === 0 ? "h3" : "h6";
@@ -114,25 +117,9 @@ function createCardHTML(weather, timeIndex) {
     </div>
   `;
 }
-// function createCardHTML(weather, timeIndex, headingSize) {
-//   return `
-//     <div class="card">
-//       <h2 class="card-header ${headingSize}">
-//       ${moment.unix(weather.list[timeIndex].dt).format("DD/MM/YYYY, HH:mm")}
-//       </h2>
-//       <div class="card-body">
-//         <img src="${getWeatherIconURL(weather)}" />
-//         <p>Temperature: ${convertKelvinToCelcius(
-//           weather.list[timeIndex].main.temp
-//         ).toFixed(2)}<sup>o</sup>C</p>
-//         <p>Wind: ${weather.list[timeIndex].wind.speed}</p>
-//         <p>Humidity: ${weather.list[timeIndex].main.humidity}</p>
-//       </div>
-//     </div>
-//   `;
-// }
 
-// addEventListener on search button
+// EVENT LISTENERS ---------------------------------------------- //
+
 searchButtonEl.addEventListener("click", function (event) {
   event.preventDefault();
   // store searchInput into variable
@@ -166,10 +153,29 @@ searchButtonEl.addEventListener("click", function (event) {
       // the below is the data from return fetch (queryURL2)
       console.log(cityWeather);
 
+      populateForecasts(cityWeather);
       addWeatherToLocalStorage(cityWeather);
-      // populateTodayPanel(cityWeather);
-      populateForecastPanel(cityWeather);
       addToSearchHistory(cityWeather.city.name);
     })
     .catch((err) => console.log(err));
+});
+
+searchHistoryEl.addEventListener("click", function (event) {
+  const targetEl = event.target;
+  // use event delegation and only target button elements
+  if (targetEl.matches("button")) {
+    // if a button exsists, then it should be in local storage
+    // but try to avoid errors by using an empty array, if not found
+    const storedWeather =
+      JSON.parse(localStorage.getItem("weatherForCities")) || [];
+
+    const weather = storedWeather.find(
+      (cityWeather) => cityWeather.city.name == targetEl.name
+    );
+
+    // only populate forcasts, if a weather object was found
+    if (weather) {
+      populateForecasts(weather);
+    }
+  }
 });
