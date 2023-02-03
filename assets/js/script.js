@@ -56,32 +56,81 @@ function populateTodayPanel(weather) {
   todayPanelEl.innerHTML = createTodayPanelHTML(weather);
 }
 
-function getWeatherIconURL(weather) {
-  return `http://openweathermap.org/img/wn/${weather.list[0].weather[0].icon}@2x.png`;
+function getWeatherIconURL(weather, timeIndex) {
+  return `http://openweathermap.org/img/wn/${weather.list[timeIndex].weather[0].icon}@2x.png`;
 }
 
 function convertKelvinToCelcius(kelvin) {
   return kelvin - 273.15;
 }
 
-function createTodayPanelHTML(weather) {
+// function createTodayPanelHTML(weather) {
+//   return `
+//     <h2 id="city-name" class="display-4">${weather.city.name}</h2>
+//     <div class="card">
+//       <h2 class="card-header h3">
+//       ${moment.unix(weather.list[0].dt).format("DD/MM/YYYY, HH:mm")}
+//       </h2>
+//       <div class="card-body">
+//         <img src="${getWeatherIconURL(weather)}" />
+//         <p>Temperature: ${convertKelvinToCelcius(
+//           weather.list[0].main.temp
+//         ).toFixed(2)}<sup>o</sup>C</p>
+//         <p>Wind: ${weather.list[0].wind.speed}</p>
+//         <p>Humidity: ${weather.list[0].main.humidity}</p>
+//       </div>
+//     </div>
+//   `;
+// }
+
+function populateForecastPanel(weather) {
+  // const forecastPanelEl = document.querySelector("#five-day-forecast");
+  // let html = "";
+
+  const dtOffsets = [0, 8, 16, 24, 32, 39];
+  dtOffsets.forEach((timeIndex, i) => {
+    const cardTargetEl = document.querySelector("#card-target-" + i);
+    const headingSize = i === 0 ? "h3" : "h6";
+
+    // cardTargetEl.innerHTML = createCardHTML(weather, timeIndex, headingSize);
+    cardTargetEl.innerHTML = createCardHTML(weather, timeIndex);
+  });
+}
+
+function createCardHTML(weather, timeIndex) {
   return `
-    <h2 id="city-name" class="display-4">${weather.city.name}</h2>
     <div class="card">
-      <h2 class="card-header h3">
-      ${moment.unix(weather.list[0].dt).format(
-        "DD/MM/YYYY"
-      )}
-      </h2>
+      <h4 class="card-header">
+      ${moment.unix(weather.list[timeIndex].dt).format("DD/MM/YYYY, HH:mm")}
+      </h4>
       <div class="card-body">
-        <img src="${getWeatherIconURL(weather)}" />
-        <p>Temperature: ${convertKelvinToCelcius(weather.list[0].main.temp).toFixed(2)}<sup>o</sup>C</p>
-        <p>Wind: ${weather.list[0].wind.speed}</p>
-        <p>Humidity: ${weather.list[0].main.humidity}</p>
+        <img src="${getWeatherIconURL(weather, timeIndex)}" />
+        <p>Temperature: ${convertKelvinToCelcius(
+          weather.list[timeIndex].main.temp
+        ).toFixed(2)}<sup>o</sup>C</p>
+        <p>Wind: ${weather.list[timeIndex].wind.speed}</p>
+        <p>Humidity: ${weather.list[timeIndex].main.humidity}</p>
       </div>
     </div>
   `;
 }
+// function createCardHTML(weather, timeIndex, headingSize) {
+//   return `
+//     <div class="card">
+//       <h2 class="card-header ${headingSize}">
+//       ${moment.unix(weather.list[timeIndex].dt).format("DD/MM/YYYY, HH:mm")}
+//       </h2>
+//       <div class="card-body">
+//         <img src="${getWeatherIconURL(weather)}" />
+//         <p>Temperature: ${convertKelvinToCelcius(
+//           weather.list[timeIndex].main.temp
+//         ).toFixed(2)}<sup>o</sup>C</p>
+//         <p>Wind: ${weather.list[timeIndex].wind.speed}</p>
+//         <p>Humidity: ${weather.list[timeIndex].main.humidity}</p>
+//       </div>
+//     </div>
+//   `;
+// }
 
 // addEventListener on search button
 searchButtonEl.addEventListener("click", function (event) {
@@ -118,7 +167,8 @@ searchButtonEl.addEventListener("click", function (event) {
       console.log(cityWeather);
 
       addWeatherToLocalStorage(cityWeather);
-      populateTodayPanel(cityWeather);
+      // populateTodayPanel(cityWeather);
+      populateForecastPanel(cityWeather);
       addToSearchHistory(cityWeather.city.name);
     })
     .catch((err) => console.log(err));
