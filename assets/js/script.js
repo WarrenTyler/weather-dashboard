@@ -41,7 +41,7 @@ function addWeatherToLocalStorage(cityWeather) {
   const storedWeather =
     JSON.parse(localStorage.getItem("weatherForCities")) || [];
 
-  // only store, if not already present 
+  // only store, if not already present
   if (
     !storedWeather.some(
       (weather) => weather.city.name === cityWeather.city.name
@@ -78,20 +78,37 @@ function populateForecasts(weather) {
     // use the array index to target where each card should be displayed
     const cardTargetEl = document.querySelector("#card-target-" + i);
 
+    // get, then inject html into target element
     cardTargetEl.innerHTML = createCardHTML(weather, timeIndex);
+
+    // get a reference to the newly created card in the dom
+    const newCard = cardTargetEl.querySelector(":scope > div");
+
+    if (i === 0) {
+      // if it's the first card, then give a lighter colour theme to the card
+      newCard.classList.add("text-white", "bg-secondary", "bg-gradient");
+      newCard.querySelector(":scope > h5").classList.add("border-light");
+    } else {
+      // otherwise, use a darker theme
+      newCard.classList.add("text-light", "bg-dark", "bg-gradient");
+      newCard.querySelector(":scope > h5").classList.add("border-secondary");
+    }
   });
 }
 
 // returns the HTML based on the weather object and the desired time offset
 function createCardHTML(weather, timeIndex) {
   return `
-    <div class="card">
-      <h4 class="card-header">
-      ${moment.unix(weather.list[timeIndex].dt).format("DD/MM/YYYY, HH:mm")}
-      </h4>
+    <div class="card mb-3">
+      <h5 class="card-header">${moment
+        .unix(weather.list[timeIndex].dt)
+        .format("DD/MM/YYYY")}</h5>
       <div class="card-body">
-        <img src="${getWeatherIconURL(weather, timeIndex)}" />
-        <p>Temperature: ${convertKelvinToCelcius(
+        <img class="rounded d-block" src="${getWeatherIconURL(
+          weather,
+          timeIndex
+        )}" />
+        <p>Temp: ${convertKelvinToCelcius(
           weather.list[timeIndex].main.temp
         ).toFixed(2)}<sup>o</sup>C</p>
         <p>Wind: ${weather.list[timeIndex].wind.speed}</p>
