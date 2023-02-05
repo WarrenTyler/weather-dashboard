@@ -118,6 +118,16 @@ function createCardHTML(weather, timeIndex) {
   `;
 }
 
+function displayFeedback(msTime) {
+  // const feedbackEl = document.querySelector("#collapseSearchFeedback");
+
+  // feedbackEl.classList.add("show");
+
+  // setTimeout(() => feedbackEl.classList.remove("show"), msTime);
+  const feedbackTriggerEl = document.querySelector("#feedbackTrigger");
+  feedbackTriggerEl.click();
+  setTimeout(() => feedbackTriggerEl.click(), msTime);
+}
 // EVENT LISTENERS ---------------------------------------------- //
 
 searchButtonEl.addEventListener("click", function (event) {
@@ -158,11 +168,16 @@ searchButtonEl.addEventListener("click", function (event) {
         addWeatherToLocalStorage(cityWeather);
         addToSearchHistory(cityWeather.city.name);
       })
-      .catch((err) => console.log(err));
+      .catch((err) => {
+        console.log(err);
+        // inform user that search was unsuccessful, for 2 seconds
+        displayFeedback(2000);
+      });
   }
 
   // finally, clear the text of the last search
   searchInputEl.value = "";
+  searchInputEl.focus();
 });
 
 searchHistoryEl.addEventListener("click", function (event) {
