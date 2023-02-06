@@ -3,11 +3,10 @@ const searchButtonEl = document.querySelector("#search-button");
 const searchHistoryEl = document.querySelector("#search-history");
 
 // remove old stored history
-removeOldHistory();
+// removeOldHistory();
 
 // populate the search history, then rely on event listeners for user interaction
 populateSearchHistory();
-
 
 // FUNCTIONS ---------------------------------------------- //
 
@@ -20,13 +19,38 @@ function removeOldHistory() {
   const currentTime = moment();
   const hourlyReset = 3;
 
-  const currentWeather = storedWeather.filter((weather) => {
+  const currentWeather = [];
+
+  storedWeather.forEach((weather) => {
     const storedWeatherTime = moment.unix(weather.list[0].dt);
 
-    console.log(weather.city.name + currentTime.diff(storedWeatherTime, "hours"));
+    console.log(
+      weather.city.name + currentTime.diff(storedWeatherTime, "hours")
+    );
 
-    return currentTime.diff(storedWeatherTime, "hours") < hourlyReset;
+    // const buttonToRemove = searchHistoryEl.querySelector(`:scope > button[name="${weather.city.name}"`)
+    // console.log(buttonToRemove);
+    // buttonToRemove.remove();
+
+    if (currentTime.diff(storedWeatherTime, "hours") > hourlyReset) {
+      const buttonToRemove = searchHistoryEl.querySelector(
+        `:scope > button[name="${weather.city.name}"`
+      );
+      console.log(buttonToRemove);
+      // update the ui, by removing search history buttons that are no longer current
+      buttonToRemove.remove();
+    } else {
+      // only keep weather that is still 'current'
+      currentWeather.push(weather);
+    }
   });
+  // const currentWeather = storedWeather.filter((weather) => {
+  //   const storedWeatherTime = moment.unix(weather.list[0].dt);
+
+  //   console.log(weather.city.name + currentTime.diff(storedWeatherTime, "hours"));
+
+  //   return currentTime.diff(storedWeatherTime, "hours") < hourlyReset;
+  // });
 
   console.log(currentWeather);
   localStorage.setItem("weatherForCities", JSON.stringify(currentWeather));
@@ -151,12 +175,7 @@ function displayFeedback(msTime) {
   setTimeout(() => feedbackTriggerEl.click(), msTime);
 }
 
-
-// EVENT LISTENERS ---------------------------------------------- //
-
-searchButtonEl.addEventListener("click", function (event) {
-  event.preventDefault();
-
+function searchForCityWeather() {
   const apiKey = "0c844d8b5a9a8c945f153e1fd8606479";
   const searchInputEl = document.querySelector("#search-input");
 
@@ -196,12 +215,20 @@ searchButtonEl.addEventListener("click", function (event) {
         console.log(err);
         // inform user that search was unsuccessful, (in milliseconds)
         displayFeedback(3000);
-      });
+      }
+    );
   }
-
-  // finally, clear the text of the last search
+  // update ui, clear the text of the last search
   searchInputEl.value = "";
   searchInputEl.focus();
+}
+
+// EVENT LISTENERS ---------------------------------------------- //
+
+searchButtonEl.addEventListener("click", function (event) {
+  event.preventDefault();
+
+  searchForCityWeather();
 });
 
 searchHistoryEl.addEventListener("click", function (event) {
