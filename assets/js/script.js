@@ -2,8 +2,35 @@
 const searchButtonEl = document.querySelector("#search-button");
 const searchHistoryEl = document.querySelector("#search-history");
 
-// first populate the search history, then rely on event listeners for user interaction
+// remove old stored history
+removeOldHistory();
+
+// populate the search history, then rely on event listeners for user interaction
 populateSearchHistory();
+
+
+// FUNCTIONS ---------------------------------------------- //
+
+// removes any weather objects that are older than the hourly reset value
+// as api is updated regularly and user will have latest forecasts
+function removeOldHistory() {
+  const storedWeather =
+    JSON.parse(localStorage.getItem("weatherForCities")) || [];
+
+  const currentTime = moment();
+  const hourlyReset = 3;
+
+  const currentWeather = storedWeather.filter((weather) => {
+    const storedWeatherTime = moment.unix(weather.list[0].dt);
+
+    console.log(weather.city.name + currentTime.diff(storedWeatherTime, "hours"));
+
+    return currentTime.diff(storedWeatherTime, "hours") < hourlyReset;
+  });
+
+  console.log(currentWeather);
+  localStorage.setItem("weatherForCities", JSON.stringify(currentWeather));
+}
 
 // populate the search history by iterating through the local storage weather objects
 function populateSearchHistory() {
@@ -119,15 +146,12 @@ function createCardHTML(weather, timeIndex) {
 }
 
 function displayFeedback(msTime) {
-  // const feedbackEl = document.querySelector("#collapseSearchFeedback");
-
-  // feedbackEl.classList.add("show");
-
-  // setTimeout(() => feedbackEl.classList.remove("show"), msTime);
-  const feedbackTriggerEl = document.querySelector("#feedbackTrigger");
+  const feedbackTriggerEl = document.querySelector("#collapseSearchFeedback");
   feedbackTriggerEl.click();
   setTimeout(() => feedbackTriggerEl.click(), msTime);
 }
+
+
 // EVENT LISTENERS ---------------------------------------------- //
 
 searchButtonEl.addEventListener("click", function (event) {
@@ -170,8 +194,8 @@ searchButtonEl.addEventListener("click", function (event) {
       })
       .catch((err) => {
         console.log(err);
-        // inform user that search was unsuccessful, for 2 seconds
-        displayFeedback(2000);
+        // inform user that search was unsuccessful, (in milliseconds)
+        displayFeedback(3000);
       });
   }
 
