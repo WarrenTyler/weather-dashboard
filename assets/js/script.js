@@ -3,56 +3,54 @@ const searchButtonEl = document.querySelector("#search-button");
 const searchHistoryEl = document.querySelector("#search-history");
 
 // remove old stored history
-// removeOldHistory();
+removeOldStorageHistory();
 
 // populate the search history, then rely on event listeners for user interaction
 populateSearchHistory();
+
+// EVENT LISTENERS ---------------------------------------------- //
+
+searchButtonEl.addEventListener("click", function (event) {
+  event.preventDefault();
+
+  const searchInputEl = document.querySelector("#search-input");
+  const cityName = searchInputEl.value.trim().toLowerCase();
+
+  loadWeatherFromAPI(cityName);
+
+  // update ui, clear the text of the last search
+  searchInputEl.value = "";
+  searchInputEl.focus();
+});
+
+searchHistoryEl.addEventListener("click", function (event) {
+  const targetEl = event.target;
+
+  // use event delegation and only target button elements
+  if (targetEl.matches("button")) {
+    // if a search history button was clicked,
+    // then it should be in local storage
+    loadWeatherFromStorage(targetEl.name);
+  }
+});
 
 // FUNCTIONS ---------------------------------------------- //
 
 // removes any weather objects that are older than the hourly reset value
 // as api is updated regularly and user will have latest forecasts
-function removeOldHistory() {
+function removeOldStorageHistory() {
   const storedWeather =
     JSON.parse(localStorage.getItem("weatherForCities")) || [];
 
   const currentTime = moment();
   const hourlyReset = 3;
 
-  const currentWeather = [];
-
-  storedWeather.forEach((weather) => {
+  const currentWeather = storedWeather.filter((weather) => {
     const storedWeatherTime = moment.unix(weather.list[0].dt);
 
-    console.log(
-      weather.city.name + currentTime.diff(storedWeatherTime, "hours")
-    );
-
-    // const buttonToRemove = searchHistoryEl.querySelector(`:scope > button[name="${weather.city.name}"`)
-    // console.log(buttonToRemove);
-    // buttonToRemove.remove();
-
-    if (currentTime.diff(storedWeatherTime, "hours") > hourlyReset) {
-      const buttonToRemove = searchHistoryEl.querySelector(
-        `:scope > button[name="${weather.city.name}"`
-      );
-      console.log(buttonToRemove);
-      // update the ui, by removing search history buttons that are no longer current
-      buttonToRemove.remove();
-    } else {
-      // only keep weather that is still 'current'
-      currentWeather.push(weather);
-    }
+    return currentTime.diff(storedWeatherTime, "hours") < hourlyReset;
   });
-  // const currentWeather = storedWeather.filter((weather) => {
-  //   const storedWeatherTime = moment.unix(weather.list[0].dt);
 
-  //   console.log(weather.city.name + currentTime.diff(storedWeatherTime, "hours"));
-
-  //   return currentTime.diff(storedWeatherTime, "hours") < hourlyReset;
-  // });
-
-  console.log(currentWeather);
   localStorage.setItem("weatherForCities", JSON.stringify(currentWeather));
 }
 
@@ -61,6 +59,8 @@ function populateSearchHistory() {
   const storedWeather =
     JSON.parse(localStorage.getItem("weatherForCities")) || [];
 
+  // clear any old search history before adding
+  searchHistoryEl.innerHTML = "";
   storedWeather.forEach((weather) => {
     addToSearchHistory(weather.city.name);
   });
@@ -112,6 +112,7 @@ function convertKelvinToCelcius(kelvin) {
   return kelvin - 273.15;
 }
 
+// takes a weather object and populates all the forecasts info
 function populateForecasts(weather) {
   const mainContentEl = document.querySelector("#main-content-wrapper");
   const cityNameEl = document.querySelector("#city-name");
@@ -169,33 +170,27 @@ function createCardHTML(weather, timeIndex) {
   `;
 }
 
+// displays a message to the user, if city was not found
 function displayFeedback(msTime) {
   const feedbackTriggerEl = document.querySelector("#collapseSearchFeedback");
   feedbackTriggerEl.click();
   setTimeout(() => feedbackTriggerEl.click(), msTime);
 }
 
-function searchForCityWeather() {
+function loadWeatherFromAPI(cityName) {
   const apiKey = "0c844d8b5a9a8c945f153e1fd8606479";
   const searchInputEl = document.querySelector("#search-input");
 
-  const city = searchInputEl.value;
-  console.log("Search for City: " + city);
-
   // only make search if user has entered some text
   // (this won't prevent bad input of city names)
-  if (city) {
-    const queryURL1 = `https://api.openweathermap.org/geo/1.0/direct?q=${city}&limit=5&appid=${apiKey}`;
+  if (cityName) {
+    const queryURL1 = `https://api.openweathermap.org/geo/1.0/direct?q=${cityName}&limit=5&appid=${apiKey}`;
 
     // first, search for the desired city using the correct endpoint
     fetch(queryURL1)
       .then((response) => response.json())
       .then((citiesFound) => {
-        // console.log("City found: " + !citiesFound.length);
-
-        // if (!citiesFound.length) return;
         const firstCity = citiesFound[0];
-        console.log("firstCity: " + firstCity.name);
 
         const queryURL2 = `https://api.openweathermap.org/data/2.5/forecast?lat=${firstCity.lat}&lon=${firstCity.lon}&appid=${apiKey}`;
         // now we can search for the weather data associated with the latitude and longitude of the city
@@ -205,48 +200,30 @@ function searchForCityWeather() {
       .then((response) => response.json())
       .then((cityWeather) => {
         // use this data to populate the display and local storage
-        console.log(cityWeather);
-
-        populateForecasts(cityWeather);
         addWeatherToLocalStorage(cityWeather);
         addToSearchHistory(cityWeather.city.name);
+        removeOldStorageHistory();
+        populateSearchHistory();
+        populateForecasts(cityWeather);
       })
       .catch((err) => {
         console.log(err);
         // inform user that search was unsuccessful, (in milliseconds)
         displayFeedback(3000);
-      }
-    );
+      });
   }
-  // update ui, clear the text of the last search
-  searchInputEl.value = "";
-  searchInputEl.focus();
 }
 
-// EVENT LISTENERS ---------------------------------------------- //
+function loadWeatherFromStorage(cityName) {
+  const storedWeather =
+    JSON.parse(localStorage.getItem("weatherForCities")) || [];
 
-searchButtonEl.addEventListener("click", function (event) {
-  event.preventDefault();
+  const weather = storedWeather.find(
+    (cityWeather) => cityWeather.city.name == cityName
+  );
 
-  searchForCityWeather();
-});
-
-searchHistoryEl.addEventListener("click", function (event) {
-  const targetEl = event.target;
-  // use event delegation and only target button elements
-  if (targetEl.matches("button")) {
-    // if a button exsists, then it should be in local storage
-    // but try to avoid errors by using an empty array, if not found
-    const storedWeather =
-      JSON.parse(localStorage.getItem("weatherForCities")) || [];
-
-    const weather = storedWeather.find(
-      (cityWeather) => cityWeather.city.name == targetEl.name
-    );
-
-    // only populate forcasts, if a weather object was found
-    if (weather) {
-      populateForecasts(weather);
-    }
+  // only populate forcasts, if a weather object was found
+  if (weather) {
+    populateForecasts(weather);
   }
-});
+}
